@@ -1,0 +1,7 @@
+[package]
+name = "radish"
+version = "0.1.0"
+authors = ["Hyunsik Choi <hyunsik.choi@gmail.com>"]
+description = "Radish is a set of core libraries"
+
+[dependencies]
