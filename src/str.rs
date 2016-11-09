@@ -143,10 +143,14 @@ mod tests {
     assert_eq!("abc".to_string(), str_vec.concat2());
     assert_eq!("abc".to_string(), str_arr.concat2());
 
-    assert_eq!("abc".to_string(), str_vec.concat_with_map(|x| format!("{}", x)));
-    assert_eq!("abc".to_string(), str_arr.concat_with_map(|x| format!("{}", x)));
+    assert_eq!("abc".to_string(),
+      str_vec.concat_with_map(|x| format!("{}", x)));
+    assert_eq!("abc".to_string(),
+      str_arr.concat_with_map(|x| format!("{}", x)));
 
-    assert_eq!("a,b,c".to_string(), join_with_map(&str_vec, ",", |x| x.to_string()));
-    assert_eq!("a,b,c".to_string(), join_with_map(&str_arr, ",", |x| x.to_string()));
+    assert_eq!("a,b,c".to_string(),
+      join_with_map(&str_vec, ",", |x| x.to_string()));
+    assert_eq!("a,b,c".to_string(),
+      join_with_map(&str_arr, ",", |x| x.to_string()));
   }
 }
