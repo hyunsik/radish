@@ -8,7 +8,9 @@ use libc::c_char;
     CString::new(s.as_bytes()).unwrap().as_ptr()
   }
 
-  pub unsafe fn to_str<'a>(chars: *const c_char) -> Result<&'a str, ::std::str::Utf8Error> {
+  #[inline]
+  pub unsafe fn to_str<'a>(chars: *const c_char)
+      -> Result<&'a str, ::std::str::Utf8Error> {
     let c_str: &CStr = CStr::from_ptr(chars);
     let bytes = c_str.to_bytes();
     ::std::str::from_utf8(bytes)
