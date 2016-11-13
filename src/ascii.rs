@@ -1,13 +1,13 @@
-//! A collection of byte (u8) utility functions
+//! A collection of ascii representation (u8) utility functions
 
 pub trait Ascii: Clone {
   fn is_alpha(self) -> bool;
   fn is_digit(self) -> bool;
   fn is_hex_digit(self) -> bool;
+  fn is_space(self) -> bool;
 }
 
 impl Ascii for u8 {
-
   /// Returns true if this `u8` is an alphabetic code point, and false if not.
   #[inline]
   fn is_alpha(self) -> bool {
@@ -31,6 +31,14 @@ impl Ascii for u8 {
   fn is_hex_digit(self) -> bool {
     match self {
       b'0'...b'9' | b'a'...b'f' | b'A'...b'F' => true,
+      _ => false
+    }
+  }
+
+  #[inline]
+  fn is_space(self) -> bool {
+    match self {
+      b' ' | b'\t' | b'\n' | b'\r' => true,
       _ => false
     }
   }

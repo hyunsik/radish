@@ -1,6 +1,6 @@
 #![feature(libc)]
 extern crate libc;
 
-pub mod byte;
+pub mod ascii;
 pub mod ffi;
 pub mod str;
