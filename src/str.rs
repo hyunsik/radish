@@ -111,7 +111,7 @@ pub fn join_with_map<'a, S, T, F>(strs: T, delimiter: &str, f: F) -> String
 mod tests {
   use std::fmt;
   use super::{Concatable, ConcatableWithMap};
-  use super::{join, join_with_map};
+  use super::join;
 
   pub struct Test {
     x: i32
@@ -135,7 +135,7 @@ mod tests {
     let str_arr = ["a", "b", "c"];
     assert_eq!("abc".to_string(), str_vec.concat2());
     assert_eq!("abc".to_string(), str_arr.concat2());
-  }  
+  }
 
   #[test]
   fn test_concatable_with_map() {
@@ -157,9 +157,6 @@ mod tests {
   fn test_join() {
     let str_vec = vec!["a", "b", "c"];
     let str_arr = ["a", "b", "c"];
-
-    assert_eq!("a,b,c".to_string(), concat(&str_vec, ","));
-    assert_eq!("a,b,c".to_string(), concat(&str_arr, ","));
 
     assert_eq!("a,b,c".to_string(), join(&str_vec, ","));
     assert_eq!("a,b,c".to_string(), join(&str_arr, ","));
