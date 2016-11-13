@@ -71,7 +71,7 @@ pub fn strtol<'a>(s: &'a [u8], start_idx: usize) -> (i64, Option<&'a [u8]>) {
       str::from_utf8_unchecked(&bytes[..last_digit_idx])
     }).ok().unwrap();
 
-  let remain = if s.len() == last_digit_idx {
+  let remain = if bytes.len() == last_digit_idx {
     None
   } else {
     Some(&bytes[last_digit_idx..])
@@ -99,6 +99,10 @@ mod tests {
     assert_eq!(12345i64, val);
     assert!(remain.is_some());
     assert_eq!(b"lll", remain.unwrap());
+
+    let (val, remain) = strtol(b"+1", 1);
+    assert_eq!(1, val);
+    assert!(remain.is_none());
   }
 
   #[test]
