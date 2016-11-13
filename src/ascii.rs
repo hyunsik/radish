@@ -45,6 +45,16 @@ impl Ascii for u8 {
 
 /// Convert a string to a i64 value and
 /// return a remaning part which is not valid in decimal
+pub fn strtoi<'a>(s: &'a str, start_idx: usize) -> (i32, Option<&'a str>) {
+  let (val, remain) = strtol(s, start_idx);
+  if val != ((val as i32) as i64) {
+    panic!(format!("integer overflow in strtoi: {}", s));
+  }
+  return (val as i32, remain);
+}
+
+/// Convert a string to a i64 value and
+/// return a remaning part which is not valid in decimal
 pub fn strtol<'a>(s: &'a str, start_idx: usize) -> (i64, Option<&'a str>) {
   debug_assert!(s.len() > start_idx, format!(
     "the length of input string must be greater than start_idx, \
@@ -71,7 +81,7 @@ pub fn strtol<'a>(s: &'a str, start_idx: usize) -> (i64, Option<&'a str>) {
 
 #[cfg(test)]
 mod tests {
-  use super::strtol;
+  use super::{strtoi, strtol};
 
   #[test]
   fn test_strtol() {
@@ -88,5 +98,11 @@ mod tests {
     assert_eq!(12345i64, val);
     assert!(remain.is_some());
     assert_eq!("lll", remain.unwrap());
+  }
+
+  #[test]
+  #[should_panic]
+  fn test_strtoi_overflow() {
+    strtoi("123456789012345lll", 0);
   }
 }
