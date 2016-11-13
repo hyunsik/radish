@@ -45,22 +45,23 @@ impl Ascii for u8 {
 
 /// Convert a string to a i64 value and
 /// return a remaning part which is not valid in decimal
-pub fn strtoi<'a>(s: &'a str, start_idx: usize) -> (i32, Option<&'a str>) {
+pub fn strtoi<'a>(s: &'a [u8], start_idx: usize) -> (i32, Option<&'a [u8]>) {
   let (val, remain) = strtol(s, start_idx);
   if val != ((val as i32) as i64) {
-    panic!(format!("integer overflow in strtoi: {}", s));
+    panic!(format!("integer overflow in strtoi: {}",
+      unsafe { str::from_utf8_unchecked(s) }));
   }
   return (val as i32, remain);
 }
 
 /// Convert a string to a i64 value and
 /// return a remaning part which is not valid in decimal
-pub fn strtol<'a>(s: &'a str, start_idx: usize) -> (i64, Option<&'a str>) {
+pub fn strtol<'a>(s: &'a [u8], start_idx: usize) -> (i64, Option<&'a [u8]>) {
   debug_assert!(s.len() > start_idx, format!(
     "the length of input string must be greater than start_idx, \
     but length = {} and start_idx = {}", s.len(), start_idx));
 
-  let bytes = &(s.as_bytes()[start_idx..]);
+  let bytes = &s[start_idx..];
   let last_digit_idx = match bytes.iter().position(|&c| !c.is_digit()) {
     Some(idx) => idx,
     None => bytes.len()
@@ -73,7 +74,7 @@ pub fn strtol<'a>(s: &'a str, start_idx: usize) -> (i64, Option<&'a str>) {
   let remain = if s.len() == last_digit_idx {
     None
   } else {
-    Some(unsafe {str::from_utf8_unchecked(&bytes[last_digit_idx..])})
+    Some(&bytes[last_digit_idx..])
   };
 
   (val, remain)
@@ -85,24 +86,24 @@ mod tests {
 
   #[test]
   fn test_strtol() {
-    let (val, remain) = strtol("12345", 0);
+    let (val, remain) = strtol(b"12345", 0);
     assert_eq!(12345i64, val);
     assert!(remain.is_none());
 
-    let (val, remain) = strtol("12345l", 0);
+    let (val, remain) = strtol(b"12345l", 0);
     assert_eq!(12345i64, val);
     assert!(remain.is_some());
-    assert_eq!("l", remain.unwrap());
+    assert_eq!(b"l", remain.unwrap());
 
-    let (val, remain) = strtol("12345lll", 0);
+    let (val, remain) = strtol(b"12345lll", 0);
     assert_eq!(12345i64, val);
     assert!(remain.is_some());
-    assert_eq!("lll", remain.unwrap());
+    assert_eq!(b"lll", remain.unwrap());
   }
 
   #[test]
   #[should_panic]
   fn test_strtoi_overflow() {
-    strtoi("123456789012345lll", 0);
+    strtoi(b"123456789012345lll", 0);
   }
 }
