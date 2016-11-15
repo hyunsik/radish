@@ -2,51 +2,43 @@
 
 use std::str::{self, FromStr};
 
-pub trait Ascii: Clone {
-  fn is_alpha(self) -> bool;
-  fn is_digit(self) -> bool;
-  fn is_hex_digit(self) -> bool;
-  fn is_alnum(self) -> bool;
-  fn is_space(self) -> bool;
+
+/// Returns true if this `u8` is an alphabetic code point, and false if not.
+#[inline]
+pub fn isalpha(c: u8) -> bool {
+  match c {
+    b'a'...b'z' | b'A'...b'Z' => true,
+    _ => false
+  }
 }
 
-impl Ascii for u8 {
-  /// Returns true if this `u8` is an alphabetic code point, and false if not.
-  #[inline]
-  fn is_alpha(self) -> bool {
-    match self {
-      b'a'...b'z' | b'A'...b'Z' => true,
-      _ => false
-    }
+/// Checks if a `char` is a digit in a radix of ten.
+#[inline]
+pub fn isdigit(c: u8) -> bool {
+  b'0' <= c && c <= b'9'
+}
+
+/// Checks if a `char` is a digit in a radix of hexadecimal.
+#[inline]
+pub fn isdigit_hex(c: u8) -> bool {
+  match c {
+    b'0'...b'9' | b'a'...b'f' | b'A'...b'F' => true,
+    _ => false
   }
+}
 
-  /// Checks if a `char` is a digit in a radix of ten.
-  #[inline]
-  fn is_digit(self) -> bool {
-    b'0' <= self && self <= b'9'
-  }
+/// Checks if a given character is an alphanumerical character.
+#[inline]
+pub fn isalnum(c: u8) -> bool {
+  isalpha(c) || isdigit(c)
+}
 
-  /// Checks if a `char` is a digit in a radix of hexadecimal.
-  #[inline]
-  fn is_hex_digit(self) -> bool {
-    match self {
-      b'0'...b'9' | b'a'...b'f' | b'A'...b'F' => true,
-      _ => false
-    }
-  }
-
-
-  #[inline]
-  fn is_alnum(self) -> bool {
-    self.is_alpha() || self.is_digit()
-  }
-
-  #[inline]
-  fn is_space(self) -> bool {
-    match self {
-      b' ' | b'\t' | b'\n' | b'\r' => true,
-      _ => false
-    }
+/// Checks if a given character is a space character (i.e., ' ', \t, \n, \r).
+#[inline]
+pub fn isspace(c: u8) -> bool {
+  match c {
+    b' ' | b'\t' | b'\n' | b'\r' => true,
+    _ => false
   }
 }
 
@@ -69,7 +61,7 @@ pub fn strtol<'a>(s: &'a [u8], start_idx: usize) -> (i64, Option<&'a [u8]>) {
     but length = {} and start_idx = {}", s.len(), start_idx));
 
   let bytes = &s[start_idx..];
-  let last_digit_idx = match bytes.iter().position(|&c| !c.is_digit()) {
+  let last_digit_idx = match bytes.iter().position(|&c| !isdigit(c)) {
     Some(idx) => idx,
     None => bytes.len()
   };
