@@ -6,6 +6,7 @@ pub trait Ascii: Clone {
   fn is_alpha(self) -> bool;
   fn is_digit(self) -> bool;
   fn is_hex_digit(self) -> bool;
+  fn is_alnum(self) -> bool;
   fn is_space(self) -> bool;
 }
 
@@ -32,6 +33,12 @@ impl Ascii for u8 {
       b'0'...b'9' | b'a'...b'f' | b'A'...b'F' => true,
       _ => false
     }
+  }
+
+
+  #[inline]
+  fn is_alnum(self) -> bool {
+    self.is_alpha() || self.is_digit()
   }
 
   #[inline]
