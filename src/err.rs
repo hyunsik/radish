@@ -1,19 +1,21 @@
+//! Errors
 use std::convert::From;
+use std::fmt::{self, Display};
 use std::num::{ParseIntError, ParseFloatError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ParseNumError { kind: ParseNumErrorKind }
+pub struct ParseNumErr { kind: ParseNumErrKind }
 
-impl ParseNumError {
-  pub fn overflow() -> ParseNumError {
-    ParseNumError {
-      kind: ParseNumErrorKind::Overflow
+impl ParseNumErr {
+  pub fn overflow() -> ParseNumErr {
+    ParseNumErr {
+      kind: ParseNumErrKind::Overflow
     }
   }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ParseNumErrorKind {
+pub enum ParseNumErrKind {
   Empty,
   InvalidDigit,
   Overflow,
@@ -21,18 +23,30 @@ pub enum ParseNumErrorKind {
   BadFormat(String)
 }
 
-impl From<ParseIntError> for ParseNumError {
-  fn from(e: ParseIntError) -> Self {
-    ParseNumError {
-      kind: ParseNumErrorKind::BadFormat(format!("{}", e))
+impl Display for ParseNumErr {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match self.kind {
+      ParseNumErrKind::Empty => write!(f, "cannot parse integer from empty string"),
+      ParseNumErrKind::InvalidDigit => write!(f, "invalid digit found in string"),
+      ParseNumErrKind::Overflow => write!(f, "number too large to fit in target type"),
+      ParseNumErrKind::Underflow => write!(f, "number too small to fit in target type"),
+      ParseNumErrKind::BadFormat(ref s) => s.fmt(f)
     }
   }
 }
 
-impl From<ParseFloatError> for ParseNumError {
+impl From<ParseIntError> for ParseNumErr {
+  fn from(e: ParseIntError) -> Self {
+    ParseNumErr {
+      kind: ParseNumErrKind::BadFormat(format!("{}", e))
+    }
+  }
+}
+
+impl From<ParseFloatError> for ParseNumErr {
   fn from(e: ParseFloatError) -> Self {
-    ParseNumError {
-      kind: ParseNumErrorKind::BadFormat(format!("{}", e))
+    ParseNumErr {
+      kind: ParseNumErrKind::BadFormat(format!("{}", e))
     }
   }
 }

@@ -1,7 +1,7 @@
 //! A collection of ascii representation (u8) utility functions
 use std::str::{self, FromStr};
 
-use err::ParseNumError;
+use err::ParseNumErr;
 
 
 /// Returns true if this `u8` is an alphabetic code point, and false if not.
@@ -43,11 +43,11 @@ pub fn isspace(c: u8) -> bool {
   }
 }
 
-pub fn strtof<'a>(s: &'a [u8]) -> Result<(f32, Option<&'a [u8]>), ParseNumError> {
+pub fn strtof<'a>(s: &'a [u8]) -> Result<(f32, Option<&'a [u8]>), ParseNumErr> {
   let (val, remain) = strtod(s)?;
 
   if val > ::std::f32::MAX as f64 {
-    Err(ParseNumError::overflow())
+    Err(ParseNumErr::overflow())
   } else {
     Ok((val as f32, remain))
   }
@@ -55,7 +55,7 @@ pub fn strtof<'a>(s: &'a [u8]) -> Result<(f32, Option<&'a [u8]>), ParseNumError>
 
 /// Convert a string to an integer value and
 /// return a remaning part which is not valid in decimal
-pub fn strtod<'a>(s: &'a [u8]) -> Result<(f64, Option<&'a [u8]>), ParseNumError> {
+pub fn strtod<'a>(s: &'a [u8]) -> Result<(f64, Option<&'a [u8]>), ParseNumErr> {
 
   let start_idx = match s.iter().position(|&c| !isspace(c)) {
     Some(idx) => idx,
@@ -80,11 +80,11 @@ pub fn strtod<'a>(s: &'a [u8]) -> Result<(f64, Option<&'a [u8]>), ParseNumError>
   Ok((val, remain))
 }
 
-pub fn strtoi<'a>(s: &'a [u8]) -> Result<(i32, Option<&'a [u8]>), ParseNumError> {
+pub fn strtoi<'a>(s: &'a [u8]) -> Result<(i32, Option<&'a [u8]>), ParseNumErr> {
   let (val, remain) = strtol(s)?;
 
   if val != ((val as i32) as i64) {
-    Err(ParseNumError::overflow())
+    Err(ParseNumErr::overflow())
   } else {
     Ok((val as i32, remain))
   }
@@ -93,7 +93,7 @@ pub fn strtoi<'a>(s: &'a [u8]) -> Result<(i32, Option<&'a [u8]>), ParseNumError>
 
 /// Convert a string to an integer value and
 /// return a remaning part which is not valid in decimal
-pub fn strtol<'a>(s: &'a [u8]) -> Result<(i64, Option<&'a [u8]>), ParseNumError> {
+pub fn strtol<'a>(s: &'a [u8]) -> Result<(i64, Option<&'a [u8]>), ParseNumErr> {
 
   let start_idx = match s.iter().position(|&c| !isspace(c)) {
     Some(idx) => idx,
