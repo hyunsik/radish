@@ -3,6 +3,32 @@ use std::str::{self, FromStr};
 
 use err::ParseNumErr;
 
+pub trait FromBytes: Sized {
+  type Err;
+  unsafe fn from_bytes(b: &[u8]) -> Result<Self, Self::Err>;
+}
+
+macro_rules! impl_from_bytes {
+  ($ty:ident) => {
+    impl FromBytes for $ty {
+      type Err = ParseNumErr;
+      unsafe fn from_bytes(b: &[u8]) -> Result<$ty, ParseNumErr> {
+        Ok($ty::from_str(str::from_utf8_unchecked(b))?)
+      }
+    }
+  }
+}
+
+impl_from_bytes!(u8);
+impl_from_bytes!(i8);
+impl_from_bytes!(i16);
+impl_from_bytes!(u16);
+impl_from_bytes!(i32);
+impl_from_bytes!(u32);
+impl_from_bytes!(i64);
+impl_from_bytes!(u64);
+impl_from_bytes!(f32);
+impl_from_bytes!(f64);
 
 /// Returns true if this `u8` is an alphabetic code point, and false if not.
 #[inline]
@@ -43,9 +69,10 @@ pub fn isspace(c: u8) -> bool {
   }
 }
 
-pub fn strtof<'a>(s: &'a [u8]) -> Result<(f32, Option<&'a [u8]>), ParseNumErr> {
-  let (val, remain) = strtod(s)?;
+pub unsafe fn strtof<'a>(s: &'a [u8])
+    -> Result<(f32, Option<&'a [u8]>), ParseNumErr> {
 
+  let (val, remain) = strtod(s)?;
   if val > ::std::f32::MAX as f64 {
     Err(ParseNumErr::overflow())
   } else {
@@ -55,7 +82,8 @@ pub fn strtof<'a>(s: &'a [u8]) -> Result<(f32, Option<&'a [u8]>), ParseNumErr> {
 
 /// Convert a string to an integer value and
 /// return a remaning part which is not valid in decimal
-pub fn strtod<'a>(s: &'a [u8]) -> Result<(f64, Option<&'a [u8]>), ParseNumErr> {
+pub unsafe fn strtod<'a>(s: &'a [u8])
+    -> Result<(f64, Option<&'a [u8]>), ParseNumErr> {
 
   let start_idx = match s.iter().position(|&c| !isspace(c)) {
     Some(idx) => idx,
@@ -67,9 +95,7 @@ pub fn strtod<'a>(s: &'a [u8]) -> Result<(f64, Option<&'a [u8]>), ParseNumErr> {
     None => s.len()
   };
 
-  let val = f64::from_str(unsafe {
-      str::from_utf8_unchecked(&s[start_idx..end_idx])
-  })?;
+  let val = f64::from_str(str::from_utf8_unchecked(&s[start_idx..end_idx]))?;
 
   let remain = if end_idx < s.len() {
     Some(&s[end_idx..])
@@ -80,9 +106,10 @@ pub fn strtod<'a>(s: &'a [u8]) -> Result<(f64, Option<&'a [u8]>), ParseNumErr> {
   Ok((val, remain))
 }
 
-pub fn strtoi<'a>(s: &'a [u8]) -> Result<(i32, Option<&'a [u8]>), ParseNumErr> {
-  let (val, remain) = strtol(s)?;
+pub unsafe fn strtoi<'a>(s: &'a [u8])
+    -> Result<(i32, Option<&'a [u8]>), ParseNumErr> {
 
+  let (val, remain) = strtol(s)?;
   if val != ((val as i32) as i64) {
     Err(ParseNumErr::overflow())
   } else {
@@ -93,7 +120,7 @@ pub fn strtoi<'a>(s: &'a [u8]) -> Result<(i32, Option<&'a [u8]>), ParseNumErr> {
 
 /// Convert a string to an integer value and
 /// return a remaning part which is not valid in decimal
-pub fn strtol<'a>(s: &'a [u8]) -> Result<(i64, Option<&'a [u8]>), ParseNumErr> {
+pub unsafe fn strtol<'a>(s: &'a [u8]) -> Result<(i64, Option<&'a [u8]>), ParseNumErr> {
 
   let start_idx = match s.iter().position(|&c| !isspace(c)) {
     Some(idx) => idx,
@@ -105,9 +132,7 @@ pub fn strtol<'a>(s: &'a [u8]) -> Result<(i64, Option<&'a [u8]>), ParseNumErr> {
     None => s.len()
   };
 
-  let val = i64::from_str(unsafe {
-      str::from_utf8_unchecked(&s[start_idx..end_idx])
-  })?;
+  let val = i64::from_str(str::from_utf8_unchecked(&s[start_idx..end_idx]))?;
 
   let remain = if end_idx < s.len() {
     Some(&s[end_idx..])
