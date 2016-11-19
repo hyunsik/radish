@@ -120,7 +120,8 @@ pub unsafe fn strtoi<'a>(s: &'a [u8])
 
 /// Convert a string to an integer value and
 /// return a remaning part which is not valid in decimal
-pub unsafe fn strtol<'a>(s: &'a [u8]) -> Result<(i64, Option<&'a [u8]>), ParseNumErr> {
+pub unsafe fn strtol<'a>(s: &'a [u8])
+  -> Result<(i64, Option<&'a [u8]>), ParseNumErr> {
 
   let start_idx = match s.iter().position(|&c| !isspace(c)) {
     Some(idx) => idx,
@@ -149,57 +150,61 @@ mod tests {
 
   #[test]
   fn test_strtol() {
-    let (val, remain) = strtol(b"   12345").ok().unwrap();
-    assert_eq!(12345i64, val);
-    assert!(remain.is_none());
+    unsafe {
+      let (val, remain) = strtol(b"   12345").ok().unwrap();
+      assert_eq!(12345i64, val);
+      assert!(remain.is_none());
 
-    let (val, remain) = strtol(b"12345").ok().unwrap();
-    assert_eq!(12345i64, val);
-    assert!(remain.is_none());
+      let (val, remain) = strtol(b"12345").ok().unwrap();
+      assert_eq!(12345i64, val);
+      assert!(remain.is_none());
 
-    let (val, remain) = strtol(b"12345l").ok().unwrap();
-    assert_eq!(12345i64, val);
-    assert!(remain.is_some());
-    assert_eq!(b"l", remain.unwrap());
+      let (val, remain) = strtol(b"12345l").ok().unwrap();
+      assert_eq!(12345i64, val);
+      assert!(remain.is_some());
+      assert_eq!(b"l", remain.unwrap());
 
-    let (val, remain) = strtol(b"12345lll").ok().unwrap();
-    assert_eq!(12345i64, val);
-    assert!(remain.is_some());
-    assert_eq!(b"lll", remain.unwrap());
+      let (val, remain) = strtol(b"12345lll").ok().unwrap();
+      assert_eq!(12345i64, val);
+      assert!(remain.is_some());
+      assert_eq!(b"lll", remain.unwrap());
 
-    let (val, remain) = strtol(b"1").ok().unwrap();
-    assert_eq!(1, val);
-    assert!(remain.is_none());
+      let (val, remain) = strtol(b"1").ok().unwrap();
+      assert_eq!(1, val);
+      assert!(remain.is_none());
+    }
   }
 
   #[test]
   fn test_strtod() {
-    let (val, remain) = strtod(b"   12345.123").ok().unwrap();
-    assert_eq!(12345.123f64, val);
-    assert!(remain.is_none());
+    unsafe {
+      let (val, remain) = strtod(b"   12345.123").ok().unwrap();
+      assert_eq!(12345.123f64, val);
+      assert!(remain.is_none());
 
-    let (val, remain) = strtod(b"12345.123").ok().unwrap();
-    assert_eq!(12345.123f64, val);
-    assert!(remain.is_none());
+      let (val, remain) = strtod(b"12345.123").ok().unwrap();
+      assert_eq!(12345.123f64, val);
+      assert!(remain.is_none());
 
-    let (val, remain) = strtod(b"12345.123l").ok().unwrap();
-    assert_eq!(12345.123f64, val);
-    assert!(remain.is_some());
-    assert_eq!(b"l", remain.unwrap());
+      let (val, remain) = strtod(b"12345.123l").ok().unwrap();
+      assert_eq!(12345.123f64, val);
+      assert!(remain.is_some());
+      assert_eq!(b"l", remain.unwrap());
 
-    let (val, remain) = strtod(b"12345.123lll").ok().unwrap();
-    assert_eq!(12345.123f64, val);
-    assert!(remain.is_some());
-    assert_eq!(b"lll", remain.unwrap());
+      let (val, remain) = strtod(b"12345.123lll").ok().unwrap();
+      assert_eq!(12345.123f64, val);
+      assert!(remain.is_some());
+      assert_eq!(b"lll", remain.unwrap());
 
-    let (val, remain) = strtod(b"1.1").ok().unwrap();
-    assert_eq!(1.1f64, val);
-    assert!(remain.is_none());
+      let (val, remain) = strtod(b"1.1").ok().unwrap();
+      assert_eq!(1.1f64, val);
+      assert!(remain.is_none());
+    }
   }
 
   #[test]
   #[should_panic]
   fn test_strtoi_overflow() {
-    strtoi(b"123456789012345lll").ok().unwrap();
+    unsafe { strtoi(b"123456789012345lll").ok().unwrap() };
   }
 }
