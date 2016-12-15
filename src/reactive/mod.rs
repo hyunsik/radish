@@ -5,15 +5,35 @@ use crossbeam::sync::MsQueue;
 use env_logger;
 use rustc_serialize::Decodable;
 
+//pub trait MessageTrait: 'static + Sync + Send + Decodable {}
+
+pub trait Transporter<M: 'static + Sync + Send + Decodable, E: 'static + Sized + Sync + Send> {
+  fn tx(&self, m: &M) -> Result<(), E>;
+  fn rx(&self) -> Result<M, E>;
+}
+
 pub struct EventBus<M: 'static + Sync + Send + Decodable, E: 'static + Sized + Sync + Send> {
   actors: Arc<Mutex<Vec<Box<Actor<M, E>>>>>,
   queue: Arc<MsQueue<M>>,
   stopped: Arc<Mutex<bool>>,
   thread: JoinHandle<Result<(), E>>,
+  txpt: Option<Arc<Box<Transporter<M, E>>>>
 }
 
 unsafe impl<M: 'static + Sync + Send + Decodable, E: 'static + Sized + Sync + Send> Sync for EventBus<M, E> {}
 unsafe impl<M: 'static + Sync + Send + Decodable, E: 'static + Sized + Sync + Send> Send for EventBus<M, E> {}
+
+pub struct NullTransporter;
+
+impl<M: 'static + Sync + Send + Decodable, E: 'static + Sized + Sync + Send> Transporter<M, E> for NullTransporter {
+  fn tx(&self, m: &M) -> Result<(), E> {
+    Ok(())
+  }
+
+  fn rx(&self) -> Result<M, E> {
+    panic!("NullTransporter::rx shouldn't be called!");
+  }
+}
 
 impl<M: Sync + Send + Decodable, E: Sized + Sync + Send> EventBus<M, E> {
 
@@ -27,7 +47,8 @@ impl<M: Sync + Send + Decodable, E: Sized + Sync + Send> EventBus<M, E> {
       actors: actors.clone(),
       queue: queue.clone(),
       stopped: stopped.clone(),
-      thread: run(stopped, queue, actors)
+      thread: run(stopped, queue, actors),
+      txpt: None
     }
   }
 
@@ -139,6 +160,6 @@ mod tests {
     debug!("after sleep");
     dispatcher.stop();
     debug!("after stop");
-    dispatcher.join();
+    dispatcher.join().ok().unwrap();
   }
 }
