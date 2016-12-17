@@ -5,37 +5,38 @@ use crossbeam::sync::MsQueue;
 use env_logger;
 use rustc_serialize::Decodable;
 
-//pub trait MessageTrait: 'static + Sync + Send + Decodable {}
+pub trait MsgTrait: 'static + Sync + Send + Decodable {}
+pub trait Error: 'static + Sized + Sync + Send {}
 
-pub trait Transporter<M: 'static + Sync + Send + Decodable, E: 'static + Sized + Sync + Send> {
+pub trait Router<M: MsgTrait, E: Error> {
   fn tx(&self, m: &M) -> Result<(), E>;
   fn rx(&self) -> Result<M, E>;
 }
 
-pub struct EventBus<M: 'static + Sync + Send + Decodable, E: 'static + Sized + Sync + Send> {
+pub struct EventBus<M: MsgTrait, E: Error> {
   actors: Arc<Mutex<Vec<Box<Actor<M, E>>>>>,
   queue: Arc<MsQueue<M>>,
   stopped: Arc<Mutex<bool>>,
   thread: JoinHandle<Result<(), E>>,
-  txpt: Option<Arc<Box<Transporter<M, E>>>>
+  txpt: Option<Arc<Box<Router<M, E>>>>
 }
 
-unsafe impl<M: 'static + Sync + Send + Decodable, E: 'static + Sized + Sync + Send> Sync for EventBus<M, E> {}
-unsafe impl<M: 'static + Sync + Send + Decodable, E: 'static + Sized + Sync + Send> Send for EventBus<M, E> {}
+unsafe impl<M: MsgTrait, E: Error> Sync for EventBus<M, E> {}
+unsafe impl<M: MsgTrait, E: Error> Send for EventBus<M, E> {}
 
-pub struct NullTransporter;
+pub struct NullRouter;
 
-impl<M: 'static + Sync + Send + Decodable, E: 'static + Sized + Sync + Send> Transporter<M, E> for NullTransporter {
+impl<M: MsgTrait, E: Error> Router<M, E> for NullRouter {
   fn tx(&self, m: &M) -> Result<(), E> {
     Ok(())
   }
 
   fn rx(&self) -> Result<M, E> {
-    panic!("NullTransporter::rx shouldn't be called!");
+    panic!("NullRouter::rx shouldn't be called!");
   }
 }
 
-impl<M: Sync + Send + Decodable, E: Sized + Sync + Send> EventBus<M, E> {
+impl<M: MsgTrait, E: Error> EventBus<M, E> {
 
   pub fn new(actors: Vec<Box<Actor<M,E>>>) -> EventBus<M, E> {
     let actors = Arc::new(Mutex::new(actors));
@@ -70,7 +71,7 @@ impl<M: Sync + Send + Decodable, E: Sized + Sync + Send> EventBus<M, E> {
 
 pub fn run<M, E>(stop: Arc<Mutex<bool>>, queue: Arc<MsQueue<M>>,
     actors: Arc<Mutex<Vec<Box<Actor<M, E>>>>>) -> JoinHandle<Result<(), E>>
-    where M: 'static + Send + Sync + Decodable, E: 'static + Sync + Send {
+    where M: MsgTrait, E: Error {
 
   let sleep_time = Duration::from_millis(50);
 
@@ -97,7 +98,7 @@ pub fn run<M, E>(stop: Arc<Mutex<bool>>, queue: Arc<MsQueue<M>>,
   })
 }
 
-pub trait Actor<M: Sync + Send + Decodable, E: Sized + Send + Sync>: Send + Sync {
+pub trait Actor<M: MsgTrait, E: Error>: Send + Sync {
   fn accept(&self, m: &M) -> bool { true }
   fn on_receive(&mut self, m: &M) -> Result<(), E>;
 }
@@ -122,6 +123,7 @@ mod tests {
     }
   }
 
+  impl MsgTrait for Message {}
   unsafe impl Send for Message {}
   unsafe impl Sync for Message {}
 
@@ -130,7 +132,7 @@ mod tests {
   pub enum ActorErr {
     Err(String)
   }
-
+  impl Error for ActorErr {}
   unsafe impl Send for ActorErr {}
   unsafe impl Sync for ActorErr {}
 
