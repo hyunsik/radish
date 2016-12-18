@@ -10,4 +10,4 @@ pub mod ascii;
 pub mod err;
 pub mod ffi;
 pub mod str;
-pub mod reactive;
+pub mod react;
