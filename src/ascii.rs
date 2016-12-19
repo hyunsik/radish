@@ -144,9 +144,37 @@ pub unsafe fn strtol<'a>(s: &'a [u8])
   Ok((val, remain))
 }
 
+const DIFF_BETWEEN_LOWER_UPPER: u8 = b'a' - b'A';
+
+#[inline]
+pub fn tolowerc(c: u8) -> u8 {  
+  if c < b'A' || b'Z' < c {
+    c
+  } else { 
+    c + DIFF_BETWEEN_LOWER_UPPER
+  }
+}
+
+pub fn tolower(s: &[u8]) -> Vec<u8> {
+  s.iter().map(|c| tolowerc(*c)).collect::<Vec<u8>>()
+}
+
+#[inline]
+pub fn toupperc(c: u8) -> u8 {  
+  if c < b'a' || b'z' < c {
+    c
+  } else { 
+    c - DIFF_BETWEEN_LOWER_UPPER
+  }
+}
+
+pub fn toupper(s: &[u8]) -> Vec<u8> {
+  s.iter().map(|c| toupperc(*c)).collect::<Vec<u8>>()
+}
+
 #[cfg(test)]
 mod tests {
-  use super::{strtod, strtol, strtoi};
+  use super::{strtod, strtol, strtoi, tolowerc, tolower, toupperc, toupper};
 
   #[test]
   fn test_strtol() {
@@ -206,5 +234,29 @@ mod tests {
   #[should_panic]
   fn test_strtoi_overflow() {
     unsafe { strtoi(b"123456789012345lll").ok().unwrap() };
+  }
+
+  #[test]
+  fn test_tolowerc() {
+    assert_eq!(b'a', tolowerc(b'A'));
+    assert_eq!(b'a', tolowerc(b'a'));
+    assert_eq!(b'b', tolowerc(b'B'));
+  }
+
+  #[test]
+  fn test_tolower() {
+    assert_eq!(b"abcdefgh", tolower(b"aBcdEfGH").as_slice());
+  }
+
+  #[test]
+  fn test_toupperc() {
+    assert_eq!(b'A', toupperc(b'A'));
+    assert_eq!(b'A', toupperc(b'a'));
+    assert_eq!(b'B', toupperc(b'b'));
+  }
+
+  #[test]
+  fn test_toupper() {
+    assert_eq!(b"ABCDEFGH", toupper(b"aBcdEfGH").as_slice());
   }
 }
