@@ -2,7 +2,6 @@ use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 use crossbeam::sync::MsQueue;
-use env_logger;
 
 pub struct EventDispatcher<M: 'static + Sync + Send, E: 'static + Sized + Sync + Send> {
   actors: Arc<Mutex<Vec<Box<Actor<M, E>>>>>,

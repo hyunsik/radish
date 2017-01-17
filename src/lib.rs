@@ -6,6 +6,7 @@ extern crate env_logger;
 #[macro_use] extern crate log;
 
 pub mod ascii;
+pub mod collections;
 pub mod err;
 pub mod ffi;
 pub mod str;
