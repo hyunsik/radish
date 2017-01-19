@@ -1,69 +1,69 @@
 /// Graph data structures and algorithms
 
-use std::collections::{HashMap, HashSet};
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::collections::BTreeMap;
+use std::cmp::Ord;
+use std::collections::btree_map::{Entry, Keys};
+
+pub use self::GraphErr::*;
+
+pub enum GraphErr {
+    NodeNotFound,
+    LoopViolation,
+    SelfLoopViolation,
+
+}
+
+pub type GraphResult<T> = Result<T, GraphErr>;
 
 pub type NodeId = usize;
 
-pub trait Graph<'a, V: 'a> {
-    fn degree(&self, &V) -> usize;
+pub trait Graph<'a, N: 'a + Ord> {
+    fn degree(&self, &N) -> GraphResult<usize>;
 
-    fn in_degree(&self, &V) -> usize;
+    fn in_degree(&self, &N) -> GraphResult<usize>;
 
-    fn out_degree(&self, &V) -> usize;
+    fn out_degree(&self, &N) -> GraphResult<usize>;
 
     fn is_directed(&self) -> bool;
 
-    fn contains_node(&self, &V) -> bool;
+    fn contains_node(&self, &N) -> bool;
 
-    fn nodes(&self) -> NodeIterator<'a, V>;
+    fn nodes(&'a self) -> Keys<'a, N, Vec<&'a N>>;
 
-    fn adjacent_nodes(&self, &V) -> NodeIterator<'a, V>;
+    fn adjacent_nodes(&self, &N) -> GraphResult<&Vec<Rc<N>>>;
 
-    fn predecessors(&self) -> NodeIterator<'a, V>;
+    fn predecessors(&self) -> NodeIterator<'a, N>;
 
-    fn successors(&self) -> NodeIterator<'a, V>;
+    fn successors(&self) -> NodeIterator<'a, N>;
 
     fn edges(&self);
 
-    fn is_connected(&self, v1: &V, v2: &V) -> bool;
+    fn is_connected(&self, &N, &N) -> bool;
+
+    fn add_node(&mut self, n: N) -> bool;
+
+    fn add_edge(&mut self, head: &'a N, tail: &'a N) -> GraphResult<bool>;
 }
 
-pub trait MutableGraph<'a, V: 'a>: Graph<'a, V> {
-    fn add_edge(&mut self, &V, &V);
+pub struct NodeIterator<'a, N: 'a> {
+    n: &'a N
 }
 
-pub trait ValueGraph<'a, V: 'a, E: 'a> : Graph<'a, V> {
-    fn edge(&self, v1: &V, v2: &V) -> &E;
-}
+impl<'a, N: 'a> Iterator for NodeIterator<'a, N> {
+    type Item = &'a N;
 
-pub trait MutableValueGraph<'a, V: 'a, E: 'a>: ValueGraph<'a, V, E> {
-    fn add_edge(&mut self, &V, &V, e: E);
-}
-
-pub struct NodeIterator<'a, V: 'a> {
-    v: &'a V
-}
-
-impl<'a, V: 'a> Iterator for NodeIterator<'a, V> {
-    type Item = &'a V;
-
-    fn next(&mut self) -> Option<&'a V> {
+    fn next(&mut self) -> Option<&'a N> {
         unimplemented!()
     }
 }
 
-pub struct GraphData<V> {
+pub struct GraphData<'a, N: 'a + Ord> {
     directed: bool,
     loop_allowed: bool,
 
-    nodes: HashMap<NodeId, V>,
-    edges: HashMap<NodeId, NodeId>
-}
-
-pub struct ValueGraphData<V, E> {
-    nodes: HashMap<NodeId, V>,
-    edges: HashMap<NodeId, NodeId>,
-    edge_labels: HashMap<(NodeId, NodeId),E>
+    graph: BTreeMap<N, Vec<&'a N>>
 }
 
 pub struct GraphBuilder {
@@ -89,30 +89,49 @@ impl GraphBuilder {
         self
     }
 
-    pub fn build<V: 'static>(&self) -> Box<Graph<V>> {
+    pub fn build<N: 'static + Ord>(&self) -> Box<Graph<'static, N>> {
         Box::new(GraphData {
             directed: self.directed,
             loop_allowed: self.loop_allowed,
-            nodes: HashMap::new(),
-            edges: HashMap::new()
+            graph: BTreeMap::new(),
         })
-    }
-
-    pub fn build_with_labeled_edge<V, E>(&self) -> Box<ValueGraph<V, E>> {
-        unimplemented!()
     }
 }
 
-impl<'a, V: 'a> Graph<'a, V> for GraphData<V> {
-    fn degree(&self, v: &V) -> usize {
+impl<'a, N: 'a + Ord> Graph<'a, N> for GraphData<'a, N> {
+    fn degree(&self, n: &N) -> GraphResult<usize> {
+
+        if self.directed {
+            let in_degree = self.in_degree(n);
+            let out_degree = self.out_degree(n);
+
+            if in_degree.is_ok() || out_degree.is_ok() {
+                let mut degree = match in_degree {
+                    Ok(d) => d,
+                    Err(_) => 0
+                };
+                degree += match out_degree {
+                    Ok(d) => d,
+                    Err(_) => 0
+                };
+
+                return Ok(degree);
+            } else {
+                return in_degree;
+            }
+        } else {
+            match self.graph.get(n) {
+                Some(edges) => Ok(edges.len()),
+                None => Err(NodeNotFound)
+            }
+        }
+    }
+
+    fn in_degree(&self, n: &N) -> GraphResult<usize> {
         unimplemented!()
     }
 
-    fn in_degree(&self, v: &V) -> usize {
-        unimplemented!()
-    }
-
-    fn out_degree(&self, v: &V) -> usize {
+    fn out_degree(&self, n: &N) -> GraphResult<usize> {
         unimplemented!()
     }
 
@@ -120,23 +139,23 @@ impl<'a, V: 'a> Graph<'a, V> for GraphData<V> {
         self.directed
     }
 
-    fn contains_node(&self, v: &V) -> bool {
+    fn contains_node(&self, n: &N) -> bool {
+        self.graph.contains_key(n)
+    }
+
+    fn nodes(&'a self) -> Keys<'a, N, Vec<&'a N>> {
+        self.graph.keys()
+    }
+
+    fn adjacent_nodes(&self, n: &N) -> GraphResult<&Vec<Rc<N>>> {
         unimplemented!()
     }
 
-    fn nodes(&self) -> NodeIterator<'a, V> {
+    fn predecessors(&self) -> NodeIterator<'a, N> {
         unimplemented!()
     }
 
-    fn adjacent_nodes(&self, v: &V) -> NodeIterator<'a, V> {
-        unimplemented!()
-    }
-
-    fn predecessors(&self) -> NodeIterator<'a, V> {
-        unimplemented!()
-    }
-
-    fn successors(&self) -> NodeIterator<'a, V> {
+    fn successors(&self) -> NodeIterator<'a, N> {
         unimplemented!()
     }
 
@@ -144,7 +163,46 @@ impl<'a, V: 'a> Graph<'a, V> for GraphData<V> {
         unimplemented!()
     }
 
-    fn is_connected(&self, v1: &V, v2: &V) -> bool {
+    fn is_connected(&self, n1: &N, n2: &N) -> bool {
         unimplemented!()
     }
+
+    fn add_node(&mut self, n: N) -> bool {
+        match self.graph.entry(n) {
+            Entry::Occupied(_) => false,
+            Entry::Vacant(v) => {
+                v.insert(Vec::new());
+                true
+            }
+        }
+    }
+
+    fn add_edge(&mut self, head: &'a N, tail: &'a N) -> GraphResult<bool> {
+        if self.directed {
+            match self.graph.get_mut(tail) {
+                Some(v) => {
+                    if (v.contains(&head)) {
+                        Ok(false)
+                    } else {
+                        v.push(head);
+                        Ok(true)
+                    }
+                }
+                None => Err(NodeNotFound)
+            }
+        } else {
+            match (self.graph.contains_key(tail), self.graph.contains_key(head)) {
+                (true, true) => {
+                   Ok(true)
+                }
+                _ => Err(NodeNotFound)
+            }
+        }
+    }
+}
+
+#[test]
+fn test_graph() {
+    let mut builder = GraphBuilder::new();
+    let g: Box<MutableGraph<String>> = builder.build();
 }
