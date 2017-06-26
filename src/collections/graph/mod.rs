@@ -30,7 +30,7 @@ pub trait Graph<'a, N: 'a + Ord> {
 
     fn contains_node(&self, &N) -> bool;
 
-    fn nodes(&'a self) -> Keys<'a, N, Vec<&'a N>>;
+    fn nodes(&'a self) -> Keys<'a, &'a N, Vec<&'a N>>;
 
     fn adjacent_nodes(&self, &N) -> GraphResult<&Vec<Rc<N>>>;
 
@@ -38,17 +38,23 @@ pub trait Graph<'a, N: 'a + Ord> {
 
     fn successors(&self) -> NodeIterator<'a, N>;
 
-    fn edges(&self);
+    fn edges(&'a self) -> EdgeIterator<'a, N>;
 
     fn is_connected(&self, &N, &N) -> bool;
 
-    fn add_node(&mut self, n: N) -> bool;
+    fn add_node(&mut self, n: &'a N) -> bool;
 
     fn add_edge(&mut self, head: &'a N, tail: &'a N) -> GraphResult<bool>;
 }
 
 pub struct NodeIterator<'a, N: 'a> {
     n: &'a N
+}
+
+#[derive(Clone)]
+pub struct Edge<'a, N: 'a> {
+    pub head: &'a N,
+    pub tail: &'a N,
 }
 
 impl<'a, N: 'a> Iterator for NodeIterator<'a, N> {
@@ -59,11 +65,30 @@ impl<'a, N: 'a> Iterator for NodeIterator<'a, N> {
     }
 }
 
+pub struct EdgeIterator<'a, N: 'a> {
+    edges: Vec<Edge<'a, N>>,
+    index: usize,
+}
+
+impl<'a, N: 'a> Iterator for EdgeIterator<'a, N> {
+    type Item = Edge<'a, N>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index >= self.edges.len() {
+            None
+        } else {
+            let edge = self.edges.get(self.index).unwrap();
+            self.index +=1;
+            Some(Edge{head: edge.head, tail: edge.tail})
+        }
+    }
+}
+
 pub struct GraphData<'a, N: 'a + Ord> {
     directed: bool,
     loop_allowed: bool,
 
-    graph: BTreeMap<N, Vec<&'a N>>
+    graph: BTreeMap<&'a N, Vec<&'a N>>
 }
 
 pub struct GraphBuilder {
@@ -89,12 +114,12 @@ impl GraphBuilder {
         self
     }
 
-    pub fn build<N: 'static + Ord>(&self) -> Box<Graph<'static, N>> {
-        Box::new(GraphData {
+    pub fn build<N: 'static + Ord>(&self) -> GraphData<'static, N> {
+        GraphData {
             directed: self.directed,
             loop_allowed: self.loop_allowed,
             graph: BTreeMap::new(),
-        })
+        }
     }
 }
 
@@ -143,7 +168,7 @@ impl<'a, N: 'a + Ord> Graph<'a, N> for GraphData<'a, N> {
         self.graph.contains_key(n)
     }
 
-    fn nodes(&'a self) -> Keys<'a, N, Vec<&'a N>> {
+    fn nodes(&'a self) -> Keys<'a, &'a N, Vec<&'a N>> {
         self.graph.keys()
     }
 
@@ -159,15 +184,27 @@ impl<'a, N: 'a + Ord> Graph<'a, N> for GraphData<'a, N> {
         unimplemented!()
     }
 
-    fn edges(&self) {
-        unimplemented!()
+    fn edges(&'a self) -> EdgeIterator<'a, N> {
+        let mut edges: Vec<Edge<'a, N>> = Vec::new();
+        for tail in self.graph.keys() {
+            match self.graph.get(tail) {
+                Some(heads) => {
+                    for head in heads {
+                        edges.push(Edge{head: *head, tail: tail});
+                    }
+                }
+                _ => panic!("Invalid graph")
+            }
+        }
+
+        EdgeIterator { edges: edges, index: 0 }
     }
 
     fn is_connected(&self, n1: &N, n2: &N) -> bool {
         unimplemented!()
     }
 
-    fn add_node(&mut self, n: N) -> bool {
+    fn add_node(&mut self, n: &'a N) -> bool {
         match self.graph.entry(n) {
             Entry::Occupied(_) => false,
             Entry::Vacant(v) => {
@@ -181,7 +218,7 @@ impl<'a, N: 'a + Ord> Graph<'a, N> for GraphData<'a, N> {
         if self.directed {
             match self.graph.get_mut(tail) {
                 Some(v) => {
-                    if (v.contains(&head)) {
+                    if v.contains(&head) {
                         Ok(false)
                     } else {
                         v.push(head);
@@ -191,11 +228,26 @@ impl<'a, N: 'a + Ord> Graph<'a, N> for GraphData<'a, N> {
                 None => Err(NodeNotFound)
             }
         } else {
+            let mut added = false;
             match (self.graph.contains_key(tail), self.graph.contains_key(head)) {
                 (true, true) => {
-                   Ok(true)
+                    {
+                        let v = self.graph.get_mut(tail).unwrap();
+                        if !v.contains(&head) {
+                            v.push(head);
+                            added = true;
+                        }
+                    }
+                    {
+                        let v = self.graph.get_mut(head).unwrap();
+                        if !v.contains(&tail) {
+                            v.push(tail);
+                            added = true;
+                        }
+                    }
+                    Ok(added)
                 }
-                _ => Err(NodeNotFound)
+                _ => return Err(NodeNotFound)
             }
         }
     }
@@ -204,5 +256,30 @@ impl<'a, N: 'a + Ord> Graph<'a, N> for GraphData<'a, N> {
 #[test]
 fn test_graph() {
     let mut builder = GraphBuilder::new();
-    let g: Box<MutableGraph<String>> = builder.build();
+
+    let a = "a".to_owned();
+    let b = "b".to_owned();
+
+
+    let mut g: GraphData<String> = builder.build();
+    g.add_node(&a);
+    g.add_node(&b);
+
+    g.add_edge(&a, &b);
+
+    for x in g.nodes() {
+        println!("{}", x);
+    }
+
+    for e in g.edges() {
+        println!("{} - {}", e.head, e.tail);
+    }
+
+    // {
+    // g.add_node(&b);
+    // }
+    // {
+    // g.add_edge(&a, &b);
+    // }
+
 }
